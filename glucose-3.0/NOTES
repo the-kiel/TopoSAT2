@@ -1,0 +1,7 @@
+# Strukture of clause messages: 
+- First integer: Number of unit clauses n
+- Next n integers: Unit clauses
+- List of clauses: Each is stored with 
+	- First integer: Size of the clause
+	- Second Integer: LBD of the clause
+	- Next Integers: The literals in the clause
