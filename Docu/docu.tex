@@ -1,0 +1,50 @@
+\documentclass[a4paper,10pt]{article}
+
+
+\usepackage[utf8]{inputenc}
+
+\usepackage{xspace}
+\newcommand{\topo}{{\sc TopoSAT2}\xspace}
+%opening
+\title{\topo --- Rationales}
+\author{Thorsten Ehlers}
+
+\begin{document}
+
+\maketitle
+
+\section{Architecture}
+\topo runs shared memory portfolio solvers which are interconnected via MPI. On each of the single portfolios, the thread with index $0$ handles the communication via MPI. 
+
+\section{Export, Import}
+Question: How often do I check? If I do this too often, the solving process may be harmed! How often does the import backtrack? 
+\subsection{Unit clauses}
+On nodes, the exchange of unit clauses is performed as in ManySAT. The solver with threadId$=0$
+\begin{itemize}
+ \item Remembers which unit clauses have been exported so far. Each unit clause is exported at most once. 
+ \item Exports unit clauses from its trail --- this implicitly handles clauses imported locally as well. 
+ \item Exports unit clauses received from solvers on its node. 
+ \item When receiving a unit clause via MPI, and ``forward'' is enabled, it is placed in the send buffer immediately unless it has been exported already. 
+
+\end{itemize}
+
+
+
+\subsection{Binary clauses}
+BIG nutzen um zu gucken, ob binäre Klauseln sinnvoll sind? 
+\subsection{Other clauses}
+\section{Clause transfer format}
+Clauses are transfered as one big chunk of integers. 
+\begin{itemize}
+ \item The first integer denotes the number of unit clauses $n_u$
+ \item The next $n_u$ integers encode the unit clauses 
+ \item Afterwards, clauses are transfered 
+    \begin{itemize}
+     \item The first integer denotes the size $s_c$ of the clause
+     \item The second integer denotes the LBD value
+     \item The next $s_c$ integers encode the literals (written by calling toInt)
+    \end{itemize}
+
+\end{itemize}
+
+\end{document}

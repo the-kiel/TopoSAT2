@@ -264,6 +264,7 @@ public:
     
     int vivifyAndExport(std::vector<int> & c);
     lbool vivifyAndExportClauses();
+    bool entailed(vec<Lit> & c);
     lbool minimiseSomeRandomPermanents(int num);
     
     std::set<std::set<int> > clausesRecentlySeen;

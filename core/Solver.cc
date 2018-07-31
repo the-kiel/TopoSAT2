@@ -2491,7 +2491,7 @@ void Solver::garbageCollect()
 
 int Solver::vivifyAndExport(std::vector<int> & c){
     assert(0 == decisionLevel());
-
+    bool DEBUG_CHECK_ENTAILED = true;
 
     for(int i = 0 ; i < c.size();i++){
         Lit p = toLit(c[i]);
@@ -2517,6 +2517,8 @@ int Solver::vivifyAndExport(std::vector<int> & c){
                 if(out_learnt.size() == 1){
                     // Okay, found a unit clause. This will be exported anyways, don't do anything here unless UNSAT was found!
                     cancelUntil(0);
+                    if(DEBUG_CHECK_ENTAILED)
+                        assert(entailed(out_learnt));
                     uncheckedEnqueue(out_learnt[0]);
                     if(propagate() == CRef_Undef)
                         return CONFLICT;
@@ -2526,6 +2528,8 @@ int Solver::vivifyAndExport(std::vector<int> & c){
                 else{
                     // Okay, export the resulting conflict clause, and backtrack
                     cancelUntil(0);
+                    if(DEBUG_CHECK_ENTAILED)
+                        assert(entailed(out_learnt));
                     exportClause(coop, out_learnt, 2);          // TODO: Can I just assume some LBD here? Which should I use?
                     return CONFLICT;
                 }
@@ -2543,11 +2547,14 @@ int Solver::vivifyAndExport(std::vector<int> & c){
             }*/
             assert(value(toLit(c[tomin])) == l_True);
             if(level(var(toLit(c[tomin]))) < decisionLevel()){
-                cancelUntil(var(toLit(c[tomin])));
+                cancelUntil(level(var(toLit(c[tomin]))));
             }
             ps.clear();
+            assert(value(toLit(c[tomin])) == l_True);
             analyzeFinal(toLit(c[tomin]), ps);
-
+            cancelUntil(0);
+            if(DEBUG_CHECK_ENTAILED)
+                assert(entailed(ps));
             exportClause(coop, ps, 2);
             cancelUntil(0);
             return ps.size() < c.size() ? SHRINKED : NO_REDUCE;
@@ -2556,6 +2563,9 @@ int Solver::vivifyAndExport(std::vector<int> & c){
             skipped++;
     }
     // Okay, looks like I forgot about this clause!
+    cancelUntil(0);
+    //if(DEBUG_CHECK_ENTAILED)
+    //    assert(entailed(ps));
     exportClause(coop, ps, 2);
     cancelUntil(0);
     return SHRINKED;
@@ -2888,4 +2898,21 @@ int Solver::checkPermanentsWithHashes(size_t numBits){
     }
     printf("c done with hash test. Used %d bits, time was %lf, collisions %d\n", numBits, MPI_Wtime()-tStart, collisions);
     return collisions;
+}
+
+/*
+ * Return whether the clause "c" is entailed by this formula by checking that unit-propagation on its negation yields a conflict
+ * */
+bool Solver::entailed(vec<Lit> & c){
+    assert(0 == decisionLevel());
+    int tsBefore = trail.size();
+    newDecisionLevel();
+    for(int i = 0 ; i < c.size();i++){
+        uncheckedEnqueue(~c[i]);
+    }
+    CRef confl = propagate();
+    bool ret = confl != CRef_Undef;
+    cancelUntil(0);
+    assert(trail.size() == tsBefore);
+    return ret;
 }
